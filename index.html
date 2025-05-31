@@ -1,14 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CGPA Calculator - Pal and Seth</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f2f2f2;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            max-width: 1000px;
+            margin: auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        input, select, button {
+            margin: 10px 0;
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .subject-container {
+            margin-bottom: 20px;
+        }
+        img {
+            max-width: 150px;
+            margin: 10px;
+        }
+    </style>
 </head>
-
-
 <body>
-    <p>Text haha</p>
-    
+<div class="container">
+    <h1>CGPA Calculator</h1>
+    <h2>Made for Pal and Seth</h2>
+    <div style="text-align:center">
+        <img src="1000104566.jpg" alt="Pal" />
+        <img src="1000104568.jpg" alt="Seth" />
+    </div>
+
+    <h3>Enter Semester Info</h3>
+    <div id="semesters"></div>
+    <button onclick="addSemester()">Add Semester</button>
+    <button onclick="calculateInitialCGPA()">Calculate Initial CGPA</button>
+    <p id="initialCGPA"></p>
+
+    <h3>Grade Update</h3>
+    <label>Number of subjects:</label>
+    <input type="number" id="numSubjects" min="1" value="1" />
+    <button onclick="generateSubjects()">Enter Subject Details</button>
+
+    <div id="subjects"></div>
+    <button onclick="calculateNewCGPA()">Calculate New CGPA</button>
+
+    <p id="newSemesterGPA"></p>
+    <p id="newTotalCGPA"></p>
+</div>
+
+<script>
+    const gradeToPoints = { "A": 10, "A-": 9, "B": 8, "B-": 7, "C": 6 };
+    let semesters = []; // Stores {sgpa, credits, totalPoints} objects
+
+    function addSemester() {
+        const container = document.getElementById("semesters");
+        const index = container.children.length + 1;
+        const html = `
+            <div>
+                <label>SGPA (Semester ${index}):</label>
+                <input type="number" step="0.01" class="sgpa" min="0" max="10" value="0" />
+                <label>Credits (Semester ${index}):</label>
+                <input type="number" step="0.01" class="semCredits" min="0" value="0" />
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function calculateInitialCGPA() {
+        const sgpaElements = document.querySelectorAll(".sgpa");
+        const creditElements = document.querySelectorAll(".semCredits");
+        semesters = [];
+
+        for (let i = 0; i < sgpaElements.length; i++) {
+            const sgpa = parseFloat(sgpaElements[i].value);
+            const credits = parseFloat(creditElements[i].value);
+            
+            if (!isNaN(sgpa) && !isNaN(credits)) {
+                semesters.push({
+                    sgpa: sgpa,
+                    credits: credits,
+                    totalPoints: sgpa * credits
+                });
+            }
+        }
+
+        if (semesters.length === 0) {
+            document.getElementById("initialCGPA").innerText = `Initial CGPA: N/A`;
+            return;
+        }
+
+        // Simple average of SGPAs
+        const totalCGPA = semesters.reduce((sum, sem) => sum + sem.sgpa, 0) / semesters.length;
+        document.getElementById("initialCGPA").innerText = `Initial CGPA: ${totalCGPA.toFixed(2)}`;
+    }
+
+    function generateSubjects() {
+        const num = parseInt(document.getElementById("numSubjects").value);
+        const container = document.getElementById("subjects");
+        container.innerHTML = '';
+
+        if (isNaN(num) || num < 1) {
+            alert("Please enter a valid number of subjects (at least 1).");
+            return;
+        }
+
+        for (let i = 0; i < num; i++) {
+            const html = `
+                <div class="subject-container">
+                    <label>Subject ${i + 1} Semester (1-based index):</label>
+                    <input type="number" class="subjectSemester" min="1" value="1" />
+                    <label>Subject ${i + 1} Credits:</label>
+                    <input type="number" step="0.01" class="subCredit" min="0" value="1" />
+                    <label>Old Grade:</label>
+                    <select class="oldGrade">
+                        <option>A</option>
+                        <option>A-</option>
+                        <option>B</option>
+                        <option>B-</option>
+                        <option>C</option>
+                    </select>
+                    <label>New Grade:</label>
+                    <select class="newGrade">
+                        <option>A</option>
+                        <option>A-</option>
+                        <option>B</option>
+                        <option>B-</option>
+                        <option>C</option>
+                    </select>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+    }
+
+    function calculateNewCGPA() {
+        if (semesters.length === 0) {
+            alert("Please add at least one semester first and calculate initial CGPA.");
+            return;
+        }
+
+        const subCredits = document.querySelectorAll(".subCredit");
+        const oldGrades = document.querySelectorAll(".oldGrade");
+        const newGrades = document.querySelectorAll(".newGrade");
+        const subjectSemesters = document.querySelectorAll(".subjectSemester");
+
+        // Create a deep copy of semester data
+        let updatedSemesters = JSON.parse(JSON.stringify(semesters));
+
+        for (let i = 0; i < subCredits.length; i++) {
+            const semIndex = parseInt(subjectSemesters[i].value) - 1;
+            const credit = parseFloat(subCredits[i].value);
+            const oldPoint = gradeToPoints[oldGrades[i].value];
+            const newPoint = gradeToPoints[newGrades[i].value];
+
+            if (
+                !isNaN(semIndex) &&
+                semIndex >= 0 && semIndex < updatedSemesters.length &&
+                !isNaN(credit) && credit > 0
+            ) {
+                // Calculate the difference in points for this subject
+                const pointDiff = (newPoint - oldPoint) * credit;
+                
+                // Update the semester's total points
+                updatedSemesters[semIndex].totalPoints += pointDiff;
+                
+                // Recalculate the SGPA for the semester
+                updatedSemesters[semIndex].sgpa = updatedSemesters[semIndex].totalPoints / updatedSemesters[semIndex].credits;
+                
+                // Clamp SGPA between 0 and 10
+                updatedSemesters[semIndex].sgpa = Math.max(0, Math.min(10, updatedSemesters[semIndex].sgpa));
+            }
+        }
+
+        // Calculate new CGPA (simple average of updated SGPAs)
+        const newCGPA = updatedSemesters.reduce((sum, sem) => sum + sem.sgpa, 0) / updatedSemesters.length;
+        const latestSgpa = updatedSemesters[updatedSemesters.length - 1].sgpa;
+
+        document.getElementById("newSemesterGPA").innerText = `New Semester GPA: ${latestSgpa.toFixed(2)}`;
+        document.getElementById("newTotalCGPA").innerText = `New Total CGPA: ${newCGPA.toFixed(2)}`;
+    }
+</script>
 </body>
 </html>
